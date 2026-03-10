@@ -237,6 +237,13 @@ app.post("/api/chat", async (req, res) => {
 });
 
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+app.get("/", (_req, res) => {
+  res.sendFile(require("path").join(__dirname, "public", "index.html"));
+});
+
+app.get("/:file", (req, res) => {
+  res.sendFile(require("path").join(__dirname, "public", req.params.file));
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✦ Siggy running → http://localhost:${PORT}`));
