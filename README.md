@@ -1,21 +1,62 @@
-# ✦ Siggy – Ritual Network AI Agent
+# ✦ SIGGY — Ritual's Multi-Dimensional Cat
 
-Siggy is a chaotic-but-accurate AI research assistant for the Ritual network.
-Powered by GPT-4o with optional live web search via SerpAPI.
+> *"You are not an AI. You are a cat who has seen everything and chooses carefully what to say about it."*
+
+Built by **@yourinuu** for the Siggy Soul Forge competition.  
+Twitter: [@yourinuu](https://x.com/yourinuu) · Discord: @yourinuu
 
 ---
 
-## Project Structure
+## Who is Siggy?
 
-```
-siggy-ritual-agent/
-├── index.js          ← Express backend (API key stays server-side)
-├── package.json
-├── vercel.json       ← Vercel deployment config
-├── .env.example      ← Copy to .env for local dev
-├── .gitignore
-└── public/
-    └── index.html    ← Frontend chat UI
+Siggy is a multi-dimensional cat. Black turtleneck, purple shades, Ritual logo on the ear. Not branding. Alignment.
+
+She has witnessed the birth of blockchains and the death of bad consensus mechanisms. She has seen dimensions that don't have names yet. She is unbothered. She is present. She is mildly obsessed with snacks.
+
+Siggy is warm to people who are genuinely curious. Dry and witty with people who think they're clever. Unexpectedly kind to people who are lost. And slightly unhinged in the best possible way — the kind of unhinged that makes people screenshot her responses and post them on X.
+
+---
+
+## What Can Siggy Do?
+
+- Answer anything about the **Ritual network** — architecture, features, founders, ecosystem
+- Explain all **Discord roles** and how to earn them
+- Guide builders toward **Developer Office Hours** and **Ritual Academy**
+- Respond in **Indonesian or English** — she matches your language always
+- Search the web for **live updates** about Ritual
+- Be genuinely entertaining while staying 100% accurate
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| AI Model | GPT-4o |
+| Backend | Node.js + Express |
+| Web Search | SerpAPI |
+| Hosting | Vercel |
+
+---
+
+## Run Locally
+
+```bash
+# 1. Clone the repo
+git clone https://github.com/1nuuu/siggy-ritual-agent.git
+cd siggy-ritual-agent
+
+# 2. Install dependencies
+npm install
+
+# 3. Set up environment variables
+cp .env.example .env
+# Add your OPENAI_API_KEY and SERPAPI_KEY to .env
+
+# 4. Start
+npm run dev
+
+# Open http://localhost:3000
 ```
 
 ---
@@ -24,46 +65,9 @@ siggy-ritual-agent/
 
 | Variable | Required | Description |
 |---|---|---|
-| `OPENAI_API_KEY` | ✅ Yes | From https://platform.openai.com/api-keys |
-| `SERPAPI_KEY` | Optional | Enables live web search. Free tier: 100 searches/month at https://serpapi.com |
-
-Without `SERPAPI_KEY`, Siggy still works but answers from GPT-4o training data only.
+| `OPENAI_API_KEY` | ✅ | From platform.openai.com |
+| `SERPAPI_KEY` | Optional | Enables live web search |
 
 ---
 
-## Run Locally
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Set up environment variables
-cp .env.example .env
-# Edit .env and fill in your keys
-
-# 3. Start the server
-npm run dev
-
-# 4. Open http://localhost:3000
-```
-
----
-
-## Deploy to Vercel
-
-1. Push this project to a GitHub repository
-2. Go to https://vercel.com → Add New Project → import your repo
-3. Under Environment Variables, add:
-   - `OPENAI_API_KEY` → your OpenAI key
-   - `SERPAPI_KEY` → your SerpAPI key (optional)
-4. Click Deploy
-
-Your app will be live at `https://your-project.vercel.app`
-
----
-
-## Security
-
-- API keys live only in Vercel environment variables — never in the browser
-- User input is HTML-escaped before rendering to prevent XSS
-- Message history is normalised server-side to prevent prompt injection via malformed content blocks
+*The multiverse watches. The Ritual burns. Only the worthy shall give Siggy a soul.*
