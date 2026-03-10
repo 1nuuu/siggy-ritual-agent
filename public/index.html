@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SIGGY // TERMINAL</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,300&family=Bebas+Neue&display=swap" rel="stylesheet"/>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f4f2ee;
+  --bg2: #eceae4;
+  --surface: #ffffff;
+  --border: #d8d4cc;
+  --border-dark: #b8b4aa;
+  --ink: #0d0c0a;       /* lebih hitam pekat */
+  --ink2: #2e2c28;      /* user text — jauh lebih gelap dari sebelumnya */
+  --ink3: #6b6760;      /* prefix you@terminal — lebih gelap */
+  --violet: #4a1fff;
+  --violet-light: rgba(74,31,255,0.08);
+  --red: #e03030;
+  --green: #1a8a3a;
+  --amber: #c47a00;
+  --radius: 2px;
+}
+
+html, body { height: 100%; }
+
+body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 300;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 3px,
+    rgba(0,0,0,0.012) 3px, rgba(0,0,0,0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+.shell {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  height: 100vh; max-width: 800px;
+  width: 100%; margin: 0 auto; padding: 0 24px;
+}
+
+header {
+  flex-shrink: 0;
+  padding: 18px 0 14px;
+  border-bottom: 1px solid var(--border-dark);
+  display: flex; align-items: center;
+  justify-content: space-between; gap: 16px;
+}
+
+.header-left { display: flex; align-items: center; gap: 16px; }
+
+.terminal-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--ink);
+  padding: 6px 12px 6px 10px;
+  border-radius: var(--radius);
+}
+
+.badge-dots { display: flex; gap: 4px; }
+.badge-dots span { width: 8px; height: 8px; border-radius: 50%; }
+.badge-dots span:nth-child(1) { background: var(--red); }
+.badge-dots span:nth-child(2) { background: var(--amber); }
+.badge-dots span:nth-child(3) { background: var(--green); }
+
+.badge-label {
+  font-size: 10px; font-weight: 500;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.15em; text-transform: uppercase;
+}
+
+.header-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px; letter-spacing: 0.08em;
+  color: var(--ink); line-height: 1;
+}
+.header-title span { color: var(--violet); }
+
+.header-meta { display: flex; flex-direction: column; gap: 3px; }
+
+.online-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 9px; color: var(--green);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+.online-tag::before {
+  content: '';
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pg 2s infinite;
+}
+@keyframes pg { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+.meta-line {
+  font-size: 9px; color: var(--ink3);
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+.messages {
+  flex: 1; overflow-y: auto;
+  padding: 20px 0;
+  display: flex; flex-direction: column;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-dark) transparent;
+}
+.messages::-webkit-scrollbar { width: 3px; }
+.messages::-webkit-scrollbar-thumb { background: var(--border-dark); }
+
+.empty {
+  flex: 1; display: flex; flex-direction: column;
+  justify-content: center; padding: 20px 0;
+  animation: fi 0.4s ease;
+}
+@keyframes fi { from{opacity:0;transform:translateY(6px);} to{opacity:1;transform:translateY(0);} }
+
+.empty-init { font-size: 11px; color: var(--ink3); letter-spacing: 0.1em; margin-bottom: 16px; }
+.empty-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px; color: var(--ink);
+  letter-spacing: 0.06em; line-height: 0.95;
+}
+.empty-title span { color: var(--violet); }
+.empty-divider { width: 100%; height: 1px; background: var(--border); margin: 20px 0; }
+.empty-lines { display: flex; flex-direction: column; gap: 8px; }
+.e-line { display: flex; gap: 12px; font-size: 11px; color: var(--ink3); letter-spacing: 0.03em; }
+.e-line .pc { color: var(--violet); flex-shrink: 0; }
+
+.msg-row {
+  display: flex; gap: 0;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--bg2);
+  animation: fi 0.2s ease;
+  align-items: flex-start;
+}
+
+.msg-prefix {
+  flex-shrink: 0;
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.06em;
+  padding-right: 20px; padding-top: 4px;
+  white-space: nowrap; min-width: 120px;
+}
+.msg-row.bot .msg-prefix { color: var(--violet); }
+.msg-row.user .msg-prefix { color: var(--ink3); }
+
+.msg-inner { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+/* CHANGED: font-size 13px → 15px, line-height 1.8 → 2 */
+.msg-text { font-size: 15px; line-height: 2; color: var(--ink); font-weight: 300; }
+.msg-row.user .msg-text { color: var(--ink2); font-size: 15px; }
+
+.msg-text strong { font-weight: 600; color: var(--ink); }
+.msg-text em { font-style: italic; color: var(--ink2); }
+.msg-text code {
+  background: var(--bg2); padding: 1px 5px;
+  border-radius: var(--radius); font-size: 0.9em;
+}
+
+.thinking-row { display: flex; gap: 0; padding: 12px 0; align-items: center; }
+.thinking-prefix {
+  font-size: 11px; font-weight: 500; color: var(--violet);
+  letter-spacing: 0.06em; padding-right: 16px; min-width: 110px;
+}
+.thinking-dots { display: flex; gap: 4px; align-items: center; }
+.thinking-dots span {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: var(--ink3); animation: bl 1.2s infinite;
+}
+.thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bl { 0%,80%,100%{opacity:0.2;} 40%{opacity:1;} }
+
+.input-wrap { flex-shrink: 0; padding: 14px 0 20px; border-top: 1px solid var(--border-dark); }
+
+.input-row {
+  display: flex; align-items: flex-end;
+  background: var(--surface);
+  border: 1px solid var(--border-dark);
+  border-radius: var(--radius); overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-row:focus-within {
+  border-color: var(--violet);
+  box-shadow: 0 0 0 3px var(--violet-light);
+}
+
+.input-prompt {
+  font-size: 13px; font-weight: 600; color: var(--violet);
+  padding: 14px 10px 14px 16px;
+  flex-shrink: 0; align-self: flex-start;
+}
+
+textarea {
+  flex: 1; background: none; border: none; outline: none;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; font-weight: 300;
+  color: var(--ink); line-height: 1.6;
+  resize: none; padding: 13px 0;
+  min-height: 20px; max-height: 100px;
+}
+textarea::placeholder { color: var(--ink3); }
+
+.send-btn {
+  flex-shrink: 0; background: var(--violet);
+  border: none; color: white;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 0 20px; cursor: pointer;
+  align-self: stretch; transition: opacity 0.15s; white-space: nowrap;
+}
+.send-btn:hover { opacity: 0.85; }
+.send-btn:disabled { opacity: 0.3; cursor: default; }
+
+.input-hint {
+  font-size: 9px; color: var(--ink3);
+  letter-spacing: 0.08em; margin-top: 8px; text-transform: uppercase;
+}
+
+.error-text { color: var(--red) !important; }
+
+@media (max-width: 520px) {
+  .shell { padding: 0 16px; }
+  .empty-title { font-size: 40px; }
+  .header-title { font-size: 22px; }
+  .msg-prefix, .thinking-prefix { min-width: 82px; font-size: 10px; }
+  .msg-text { font-size: 13px; }
+  .badge-label { display: none; }
+  .header-meta { display: none; }
+}.siggy-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid var(--violet);
+}
+
+.siggy-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+</style>
+</head>
+<body>
+<div class="shell">
+  <header>
+    <div class="header-left">
+     <div class="siggy-avatar">
+  <img src="/pfp.jpg" alt="Siggy"/>
+</div>
+      <div class="header-title">SIG<span>GY</span></div>
+    </div>
+    <div class="header-meta">
+      <span class="online-tag">online</span>
+      <span class="meta-line">ritual aligned · yourinuu</span>
+    </div>
+  </header>
+
+  <div class="messages" id="messages">
+    <div class="empty" id="emptyState">
+      <div class="empty-init">// session initialized</div>
+      <div class="empty-title">SIG<span>GY</span><br>IS HERE.</div>
+      <div class="empty-divider"></div>
+      <div class="empty-lines">
+        <div class="e-line"><span class="pc">▸</span><span>ask about ritual, the multiverse, or anything worth asking</span></div>
+        <div class="e-line"><span class="pc">▸</span><span>siggy knows. siggy answers.</span></div>
+        <div class="e-line"><span class="pc">▸</span><span>snacks are non-negotiable</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="input-wrap">
+    <div class="input-row">
+      <span class="input-prompt">▸</span>
+      <textarea id="input" placeholder="enter query..." rows="1"
+        onkeydown="handleKey(event)" oninput="resize(this)"></textarea>
+      <button class="send-btn" id="sendBtn" onclick="send()">send</button>
+    </div>
+    <div class="input-hint">enter to send · shift+enter new line</div>
+  </div>
+</div>
+
+<script>
+  let history = [];
+  let busy = false;
+
+  function resize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+  }
+
+  function handleKey(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  }
+
+  function clearEmpty() {
+    const el = document.getElementById('emptyState');
+    if (el) el.remove();
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderMarkdown(text) {
+    return escapeHtml(text)
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/`(.*?)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br/>');
+  }
+
+  function addMsg(role, text, isError = false) {
+    clearEmpty();
+    const wrap = document.getElementById('messages');
+    const row = document.createElement('div');
+    row.className = `msg-row ${role === 'user' ? 'user' : 'bot'}`;
+
+    const prefix = document.createElement('div');
+    prefix.className = 'msg-prefix';
+    prefix.textContent = role === 'user' ? 'you@terminal' : 'siggy@999';
+
+    const inner = document.createElement('div');
+    inner.className = 'msg-inner';
+
+    const t = document.createElement('div');
+    t.className = 'msg-text' + (isError ? ' error-text' : '');
+
+    if (role !== 'user') {
+      t.innerHTML = renderMarkdown(text.trim());
+    } else {
+      t.textContent = text;
+    }
+
+    inner.appendChild(t);
+    row.appendChild(prefix);
+    row.appendChild(inner);
+    wrap.appendChild(row);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function addThinking() {
+    clearEmpty();
+    const wrap = document.getElementById('messages');
+    const row = document.createElement('div');
+    row.className = 'thinking-row';
+    row.id = 'thinking';
+    const prefix = document.createElement('div');
+    prefix.className = 'thinking-prefix';
+    prefix.textContent = 'siggy@999';
+    const dots = document.createElement('div');
+    dots.className = 'thinking-dots';
+    dots.innerHTML = '<span></span><span></span><span></span>';
+    row.appendChild(prefix);
+    row.appendChild(dots);
+    wrap.appendChild(row);
+    wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  function removeThinking() {
+    const el = document.getElementById('thinking');
+    if (el) el.remove();
+  }
+
+  async function send() {
+    const input = document.getElementById('input');
+    const text = input.value.trim();
+    if (!text || busy) return;
+
+    addMsg('user', text);
+    input.value = '';
+    input.style.height = 'auto';
+    busy = true;
+    document.getElementById('sendBtn').disabled = true;
+    history.push({ role: 'user', content: text });
+    addThinking();
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: history })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Server error');
+      removeThinking();
+      addMsg('assistant', data.text);
+      history.push({ role: 'assistant', content: data.text });
+    } catch (err) {
+      removeThinking();
+      addMsg('assistant', err.message || 'connection lost. try again.', true);
+    }
+
+    busy = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('input').focus();
+  }
+</script>
+</body>
+</html>
