@@ -242,8 +242,13 @@ app.get("/", (_req, res) => {
 });
 
 app.get("/:file", (req, res) => {
-  res.sendFile(require("path").join(__dirname, "public", req.params.file));
+  const path = require("path");
+  const filePath = path.join(__dirname, "public", req.params.file);
+  res.sendFile(filePath, (err) => {
+    if (err) res.status(404).send("Not found");
+  });
 });
+
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`✦ Siggy running → http://localhost:${PORT}`));
