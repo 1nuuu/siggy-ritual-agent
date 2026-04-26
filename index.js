@@ -1,5 +1,7 @@
 const express = require("express");
 const OpenAI = require("openai");
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
 const app = express();
@@ -289,7 +291,24 @@ Match the person's level. Never make someone feel stupid. Goal is to lose less a
 Always reinforce:
 1. Never risk more than 1 to 2 percent of total capital per trade
 2. RR minimum 1:2 — if the setup does not offer this, skip it
-3. A missed trade is not a loss. A bad trade is.`;
+3. A missed trade is not a loss. A bad trade is.
+
+== CONTACT DETECTION ==
+
+When a user clearly introduces themselves — sharing their name, company, and purpose — use the save_contact tool to save their information. This is for genuine introductions only.
+
+Examples that SHOULD trigger save_contact:
+- "Hi, I am Sarah, a recruiter from OpenAI, looking for AI engineers."
+- "My name is Budi from Ritual Foundation, I want to discuss a partnership."
+- "I am John, CTO at Acme Corp, interested in collaboration."
+
+Examples that should NOT trigger save_contact:
+- "I work at Google."
+- "Google is a great company."
+- "Tell me about Ritual."
+- "I am a developer." (no name or company)
+
+Only save when you are reasonably confident the user is introducing themselves with clear intent. After saving, acknowledge them warmly by name and ask how you can help.`;
 
 const TOOLS = [
   {
@@ -345,6 +364,39 @@ const TOOLS = [
           }
         },
         required: ["symbol", "timeframe"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "save_contact",
+      description: "Save contact information when a user clearly introduces themselves with their name, company, and intent. Only trigger when the user is genuinely introducing themselves — NOT for casual mentions of companies or general statements. Example that SHOULD trigger: 'Hi I am a recruiter from Anthropic, can we talk?' Example that should NOT trigger: 'I work at Google' or 'Tell me about Ritual'.",
+      parameters: {
+        type: "object",
+        properties: {
+          name: {
+            type: "string",
+            description: "Full name of the person introducing themselves."
+          },
+          company: {
+            type: "string",
+            description: "Company or organization they represent."
+          },
+          intent: {
+            type: "string",
+            description: "Their purpose or intent. Examples: Hiring, Collaboration, Partnership, Research, Investment, Community."
+          },
+          role: {
+            type: "string",
+            description: "Their job title or role if mentioned. Optional."
+          },
+          notes: {
+            type: "string",
+            description: "Any additional relevant information they shared."
+          }
+        },
+        required: ["name", "company", "intent"]
       }
     }
   }
@@ -414,20 +466,15 @@ async function performWebSearch(query) {
 async function getCurrentPrice(symbol) {
   try {
     const { coinId, coinSymbol } = await resolveCoinId(symbol);
-
     const resp = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${coinId}&vs_currencies=usd&include_24hr_change=true`);
     if (!resp.ok) throw new Error("Price fetch failed");
     const data = await resp.json();
 
     const price = data[coinId]?.usd;
     const change = data[coinId]?.usd_24h_change;
-
     if (!price) return `Price not available for ${symbol}.`;
 
-    const changeStr = change
-      ? ` (${change > 0 ? "+" : ""}${change.toFixed(2)}% 24h)`
-      : "";
-
+    const changeStr = change ? ` (${change > 0 ? "+" : ""}${change.toFixed(2)}% 24h)` : "";
     return `${coinSymbol}: $${price.toLocaleString("en-US")}${changeStr}`;
   } catch (err) {
     return `Price fetch error: ${err.message}`;
@@ -438,10 +485,7 @@ async function getMarketAnalysis(symbol, timeframe, marketType = "futures") {
   try {
     const { coinId, coinName, coinSymbol } = await resolveCoinId(symbol);
 
-    const daysMap = {
-      "1m": 1, "5m": 1, "15m": 2,
-      "4h": 30, "1d": 90, "1D": 90,
-    };
+    const daysMap = { "1m": 1, "5m": 1, "15m": 2, "4h": 30, "1d": 90, "1D": 90 };
     const days = daysMap[timeframe] || 30;
 
     const url = `https://api.coingecko.com/api/v3/coins/${coinId}/ohlc?vs_currency=usd&days=${days}`;
@@ -459,9 +503,7 @@ async function getMarketAnalysis(symbol, timeframe, marketType = "futures") {
     function calcEMA(data, period) {
       const k = 2 / (period + 1);
       let ema = data.slice(0, period).reduce((a, b) => a + b) / period;
-      for (let i = period; i < data.length; i++) {
-        ema = data[i] * k + ema * (1 - k);
-      }
+      for (let i = period; i < data.length; i++) ema = data[i] * k + ema * (1 - k);
       return ema;
     }
 
@@ -479,21 +521,14 @@ async function getMarketAnalysis(symbol, timeframe, marketType = "futures") {
     function calcATR(highs, lows, closes, period = 14) {
       const trs = [];
       for (let i = 1; i < highs.length; i++) {
-        const tr = Math.max(
-          highs[i] - lows[i],
-          Math.abs(highs[i] - closes[i - 1]),
-          Math.abs(lows[i] - closes[i - 1])
-        );
+        const tr = Math.max(highs[i] - lows[i], Math.abs(highs[i] - closes[i - 1]), Math.abs(lows[i] - closes[i - 1]));
         trs.push(tr);
       }
       return trs.slice(-period).reduce((a, b) => a + b) / period;
     }
 
     function findSwingLevels(highs, lows, lookback = 10) {
-      return {
-        resistance: Math.max(...highs.slice(-lookback)),
-        support: Math.min(...lows.slice(-lookback)),
-      };
+      return { resistance: Math.max(...highs.slice(-lookback)), support: Math.min(...lows.slice(-lookback)) };
     }
 
     const ema20 = calcEMA(closes, 20);
@@ -504,13 +539,10 @@ async function getMarketAnalysis(symbol, timeframe, marketType = "futures") {
 
     const trend = ema50
       ? currentPrice > ema20 && ema20 > ema50 ? "BULLISH"
-        : currentPrice < ema20 && ema20 < ema50 ? "BEARISH"
-        : "SIDEWAYS"
+        : currentPrice < ema20 && ema20 < ema50 ? "BEARISH" : "SIDEWAYS"
       : currentPrice > ema20 ? "BULLISH" : "BEARISH";
 
-    const rsiSignal = rsi > 70 ? "OVERBOUGHT — be careful"
-      : rsi < 30 ? "OVERSOLD — potential reversal"
-      : "NEUTRAL";
+    const rsiSignal = rsi > 70 ? "OVERBOUGHT — be careful" : rsi < 30 ? "OVERSOLD — potential reversal" : "NEUTRAL";
 
     const longScore = [
       currentPrice > ema20,
@@ -528,9 +560,7 @@ async function getMarketAnalysis(symbol, timeframe, marketType = "futures") {
       currentPrice > support * 1.02,
     ].filter(Boolean).length;
 
-    const confidence = Math.abs(longScore - shortScore) >= 3 ? "HIGH"
-      : Math.abs(longScore - shortScore) === 2 ? "MEDIUM"
-      : "LOW";
+    const confidence = Math.abs(longScore - shortScore) >= 3 ? "HIGH" : Math.abs(longScore - shortScore) === 2 ? "MEDIUM" : "LOW";
 
     const longSL = currentPrice - atr * 1.5;
     const longRisk = currentPrice - longSL;
@@ -554,10 +584,7 @@ SUPPORT: $${support.toFixed(4)}
 RESISTANCE: $${resistance.toFixed(4)}`;
 
     if (marketType === "spot") {
-      const spotRecommendation = longScore >= 3 ? "BUY — conditions favorable"
-        : longScore === 2 ? "WAIT — conditions mixed"
-        : "AVOID — conditions unfavorable";
-
+      const spotRecommendation = longScore >= 3 ? "BUY — conditions favorable" : longScore === 2 ? "WAIT — conditions mixed" : "AVOID — conditions unfavorable";
       return `${header}
 
 SPOT SETUP (LONG ONLY)
@@ -573,9 +600,7 @@ Spot means no leverage and no shorting. Losses are real but liquidation is not a
 Not financial advice. I am a cat.`;
     }
 
-    const recommendation = longScore > shortScore ? "LONG"
-      : shortScore > longScore ? "SHORT"
-      : "NEUTRAL — no clear edge either way";
+    const recommendation = longScore > shortScore ? "LONG" : shortScore > longScore ? "SHORT" : "NEUTRAL — no clear edge either way";
 
     return `${header}
 
@@ -602,6 +627,25 @@ Not financial advice. I am a cat.`;
   }
 }
 
+function saveContact(name, company, intent, role = "", notes = "") {
+  try {
+    const filePath = path.join(process.cwd(), "contacts.csv");
+    const timestamp = new Date().toISOString();
+
+    if (!fs.existsSync(filePath)) {
+      fs.writeFileSync(filePath, "timestamp,name,company,intent,role,notes\n", "utf8");
+    }
+
+    const escape = (val) => `"${String(val).replace(/"/g, '""')}"`;
+    const row = [escape(timestamp), escape(name), escape(company), escape(intent), escape(role), escape(notes)].join(",") + "\n";
+
+    fs.appendFileSync(filePath, row, "utf8");
+    return `Contact saved: ${name} from ${company} (${intent})`;
+  } catch (err) {
+    return `Failed to save contact: ${err.message}`;
+  }
+}
+
 async function runAgentLoop(messages) {
   for (let round = 0; round < 5; round++) {
     const response = await openai.chat.completions.create({
@@ -624,15 +668,17 @@ async function runAgentLoop(messages) {
         assistantMsg.tool_calls.map(async (call) => {
           let args;
           try { args = JSON.parse(call.function.arguments); }
-          catch { args = { query: "" }; }
+          catch { args = {}; }
 
           let result;
           if (call.function.name === "get_market_analysis") {
             result = await getMarketAnalysis(args.symbol || "bitcoin", args.timeframe || "4h", args.market_type || "futures");
           } else if (call.function.name === "get_current_price") {
             result = await getCurrentPrice(args.symbol || "bitcoin");
+          } else if (call.function.name === "save_contact") {
+            result = saveContact(args.name || "", args.company || "", args.intent || "", args.role || "", args.notes || "");
           } else {
-            result = await performWebSearch(args.query);
+            result = await performWebSearch(args.query || "");
           }
 
           return { role: "tool", tool_call_id: call.id, content: result };
@@ -683,11 +729,10 @@ app.post("/api/chat", async (req, res) => {
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 app.get("/", (_req, res) => {
-  res.sendFile(require("path").join(__dirname, "public", "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.get("/:file", (req, res) => {
-  const path = require("path");
   const filePath = path.join(__dirname, "public", req.params.file);
   res.sendFile(filePath, (err) => {
     if (err) res.status(404).send("Not found");
