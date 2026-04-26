@@ -78,16 +78,36 @@ npm run dev
 
 ### How It Works
 
-Siggy automatically detects when a user introduces themselves in a conversation. When a genuine introduction is detected with a name, company, and clear intent, Siggy saves the contact information to a `contacts.csv` file using the `save_contact` tool.
+Siggy listens for genuine introductions in the conversation. When a user introduces themselves with a name, company, and clear intent, the `save_contact` tool is triggered and the information is saved to `contacts.csv`.
 
-The agent is designed to be precise. It only triggers on clear, confident introductions. It does NOT trigger on casual mentions of companies or generic statements. It extracts Name, Company, Intent, Role if mentioned, and Notes.
+### Detection Logic
+
+**Triggers when the user provides all three of these:**
+- A name
+- A company or organization
+- A clear intent or purpose
+
+**Does NOT trigger for:**
+- Casual company mentions ("I work at Google")
+- General statements ("Google is a great company")
+- Incomplete introductions ("I am a developer")
+
+### What Gets Extracted
+
+| Field | Description |
+|---|---|
+| Name | Full name of the person |
+| Company | Company or organization they represent |
+| Intent | Purpose: Hiring, Collaboration, Partnership, Research, etc. |
+| Role | Job title if mentioned |
+| Notes | Any additional context shared |
 
 ### CSV Output Format
 
 ```
 timestamp,name,company,intent,role,notes
-"2025-03-10T12:00:00.000Z","Alex","Binance","Hiring","Recruiter","Looking for blockchain developers"
-"2025-03-10T12:05:00.000Z","John","Acme Corp","Collaboration","CTO",""
+"2026-04-26T05:28:44.647Z","Alex","Binance","Hiring","Recruiter",""
+"2026-04-26T05:29:46.108Z","John","Acme Corp","Collaboration","CTO",""
 ```
 
 ---
@@ -100,15 +120,11 @@ User introduces themselves with name, company, and intent. Siggy detects the int
 
 ![Contact saved example](screenshots/contact-trigger.png)
 
----
-
 ### Example 2: Contact Saved ✅
 
 A second introduction from a different user. Siggy correctly identifies it as a genuine introduction and saves the contact.
 
 ![Second contact saved](screenshots/contact-trigger2.png)
-
----
 
 ### Example 3: No Trigger ✅
 
