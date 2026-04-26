@@ -106,7 +106,7 @@ User introduces themselves with name, company, and intent. Siggy detects the int
 
 A second introduction from a different user. Siggy correctly identifies it as a genuine introduction and saves the contact.
 
-![Second contact saved](screenshots/contact-trigger-2.png)
+![Second contact saved](screenshots/contact-trigger2.png)
 
 ---
 
