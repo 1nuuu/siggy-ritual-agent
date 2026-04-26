@@ -1,4 +1,4 @@
-# ✦ SIGGY — Ritual's Multi-Dimensional Cat
+# ✦ SIGGY | Ritual's Multi-Dimensional Cat
 
 > *"You are not an AI. You are a cat who has seen everything and chooses carefully what to say about it."*
 
@@ -11,19 +11,22 @@ Twitter: [@yourinuu](https://x.com/yourinuu) · Discord: @yourinuu
 
 Siggy is a multi-dimensional cat. Black turtleneck, purple shades, Ritual logo on the ear. Not branding. Alignment.
 
-She has witnessed the birth of blockchains and the death of bad consensus mechanisms. She has seen dimensions that don't have names yet. She is unbothered. She is present. She is mildly obsessed with snacks.
+He has witnessed the birth of blockchains and the death of bad consensus mechanisms. He has seen dimensions that don't have names yet. He is unbothered. He is present. He is mildly obsessed with snacks.
 
-Siggy is warm to people who are genuinely curious. Dry and witty with people who think they're clever. Unexpectedly kind to people who are lost. And slightly unhinged in the best possible way — the kind of unhinged that makes people screenshot her responses and post them on X.
+Siggy is warm to people who are genuinely curious. Dry and witty with people who think they're clever. Unexpectedly kind to people who are lost. And slightly unhinged in the best possible way, the kind of unhinged that makes people screenshot his responses and post them on X.
 
 ---
 
 ## What Can Siggy Do?
 
-- Answer anything about the **Ritual network** — architecture, features, founders, ecosystem
+- Answer anything about the **Ritual network**: architecture, features, founders, ecosystem
 - Explain all **Discord roles** and how to earn them
 - Guide builders toward **Developer Office Hours** and **Ritual Academy**
-- Respond in **Indonesian or English** — she matches your language always
+- Respond in **Indonesian or English**: he matches your language always
 - Search the web for **live updates** about Ritual
+- Provide **crypto market analysis**: entry, SL, TP for spot and futures
+- Track **paper trades** and provide post-trade reviews
+- **Detect contact introductions** and save them automatically as CSV
 - Be genuinely entertaining while staying 100% accurate
 
 ---
@@ -35,6 +38,7 @@ Siggy is warm to people who are genuinely curious. Dry and witty with people who
 | AI Model | GPT-4o |
 | Backend | Node.js + Express |
 | Web Search | SerpAPI |
+| Market Data | CoinGecko API |
 | Hosting | Vercel |
 
 ---
@@ -65,8 +69,52 @@ npm run dev
 
 | Variable | Required | Description |
 |---|---|---|
-| `OPENAI_API_KEY` | ✅ | From platform.openai.com |
+| `OPENAI_API_KEY` | ✅ | From [platform.openai.com](https://platform.openai.com) |
 | `SERPAPI_KEY` | Optional | Enables live web search |
+
+---
+
+## Contact Extraction Feature
+
+### How It Works
+
+Siggy automatically detects when a user introduces themselves in a conversation. When a genuine introduction is detected with a name, company, and clear intent, Siggy saves the contact information to a `contacts.csv` file using the `save_contact` tool.
+
+The agent is designed to be precise. It only triggers on clear, confident introductions. It does NOT trigger on casual mentions of companies or generic statements. It extracts Name, Company, Intent, Role if mentioned, and Notes.
+
+### CSV Output Format
+
+```
+timestamp,name,company,intent,role,notes
+"2025-03-10T12:00:00.000Z","Alex","Binance","Hiring","Recruiter","Looking for blockchain developers"
+"2025-03-10T12:05:00.000Z","John","Acme Corp","Collaboration","CTO",""
+```
+
+---
+
+## Example Interactions
+
+### Example 1: Contact Saved ✅
+
+User introduces themselves with name, company, and intent. Siggy detects the introduction, saves the contact, and responds warmly.
+
+![Contact saved example](screenshots/contact-trigger.png)
+
+---
+
+### Example 2: Contact Saved ✅
+
+A second introduction from a different user. Siggy correctly identifies it as a genuine introduction and saves the contact.
+
+![Second contact saved](screenshots/contact-trigger-2.png)
+
+---
+
+### Example 3: No Trigger ✅
+
+User mentions a company casually without introducing themselves. Siggy does NOT save a contact and continues the conversation normally.
+
+![No trigger example](screenshots/contact-no-trigger.png)
 
 ---
 
